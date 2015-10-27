@@ -14,7 +14,7 @@ _url_re = re.compile("""
     /(?P<channel>[^/]+)
 """, re.VERBOSE)
 
-_json_re = re.compile("window.oPageConfig.oRoom\s*=\s*\{(.+)\}\;")
+_json_re = re.compile("window\.oPageConfig\.oRoom\s=\s\{(.+)\};")
 
 _room_schema = validate.Schema(
     validate.all(
