@@ -46,7 +46,7 @@ class Zhanqi(Plugin):
         if room["status"] != STATUS_ONLINE:
             return
 
-        hls_url = "http://dlhls.cdn.zhanqi.tv/zqlive/{room[videoId]}_1024/index.m3u8".format(room=room)
+        hls_url = "http://dlhls.cdn.zhanqi.tv/zqlive/{room[videoId]}_1024/index.m3u8?Dnion_vsnae={room[videoId]}".format(room=room)
         hls_stream = HLSStream(self.session, hls_url)
         if hls_stream:
             yield "hls", hls_stream
