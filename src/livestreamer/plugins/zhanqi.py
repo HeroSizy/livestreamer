@@ -2,10 +2,12 @@ import re
 
 from livestreamer.plugin import Plugin
 from livestreamer.plugin.api import http, validate
+from livestreamer.plugin.api.utils import parse_json
 from livestreamer.stream import (
     HTTPStream, HLSStream
 )
 
+API_URL = "http://www.zhanqi.tv/api/public/room.liveparam?room_id={roomID[id]}"
 STATUS_ONLINE = 4
 STATUS_OFFLINE = 0
 
@@ -14,23 +16,42 @@ _url_re = re.compile("""
     /(?P<channel>[^/]+)
 """, re.VERBOSE)
 
-_json_re = re.compile("window\.oPageConfig\.oRoom\s=\s\{(.+)\};")
+_json_re = re.compile(r"window\.oPageConfig\.oRoom\s=\s({.+?});")
 
-_room_schema = validate.Schema(
+_roomID_schema = validate.Schema(
     validate.all(
         validate.transform(_json_re.search),
-        validate.any(None, {
-        "status": validate.all(
-            validate.text,
-            validate.transform(int)
-        ),
-        "videoId": validate.text
-        })
+        validate.any(
+            None,
+            validate.all(
+                validate.get(1),
+                validate.transform(parse_json),
+                {
+                    "id": validate.all(
+                        validate.text,
+                        validate.transform(int)
+                    )
+                }
+            )
+        )
     )
 )
 
+_room_schema = validate.Schema(
+    {
+        "data": validate.any(None, {
+            "status": validate.all(
+                validate.text,
+                validate.transform(int)
+            ),
+            "videoId": validate.text
+        })
+    },
+    validate.get("data")
+)
 
-class Zhanqi(Plugin):
+
+class Zhanqitv(Plugin):
     @classmethod
     def can_handle_url(self, url):
         return _url_re.match(url)
@@ -39,7 +60,10 @@ class Zhanqi(Plugin):
         match = _url_re.match(self.url)
         channel = match.group("channel")
 
-        room = http.get(self.url, schema=_room_schema)
+        roomID = http.get(self.url, schema=_roomID_schema)
+
+        res = http.get(API_URL.format(roomID=roomID))
+        room = http.json(res, schema=_room_schema)
         if not room:
             return
 
@@ -56,4 +80,4 @@ class Zhanqi(Plugin):
         if http_stream:
             yield "http", http_stream
 
-__plugin__ = Zhanqi
+__plugin__ = Zhanqitv
